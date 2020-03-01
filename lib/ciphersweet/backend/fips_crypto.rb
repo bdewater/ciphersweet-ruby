@@ -5,7 +5,7 @@ require 'openssl'
 require 'securerandom'
 
 require_relative '../refinements/fixed_length_secure_compare'
-require_relative '../errors'
+require_relative '../constants'
 require_relative '../util'
 
 module Ciphersweet

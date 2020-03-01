@@ -4,7 +4,7 @@ module Ciphersweet
   class BlindIndex
     attr_reader :name, :filter_bits, :fast_hash, :hash_config
 
-    def initialize(name, transformations = [], filter_bits = 256, fast_hash = false, hash_config = {})
+    def initialize(name, transformations: [], filter_bits: 256, fast_hash: false, hash_config: {})
       @name = name
       @transformations = transformations
       @filter_bits = filter_bits

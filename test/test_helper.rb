@@ -5,3 +5,4 @@ require "ciphersweet"
 
 require "minitest/autorun"
 require "minitest/focus"
+require "byebug"

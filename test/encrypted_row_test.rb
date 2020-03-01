@@ -65,6 +65,9 @@ class EncryptedRowTest < Minitest::Test
 
     blind_index = encrypted_row.blind_index("contact_ssn_last_four", row)
     assert_equal("a88e74ada916ab9b", blind_index["contact_ssn_last_four"])
+
+    compound_index = encrypted_row.blind_index("contact_ssnlast4_hivstatus", row)
+    assert_equal("9c3d53214ab71d7f", compound_index["contact_ssnlast4_hivstatus"])
   end
 
   private
@@ -76,11 +79,19 @@ class EncryptedRowTest < Minitest::Test
 
     blind_index = Ciphersweet::BlindIndex.new(
       "contact_ssn_last_four",
-      [Ciphersweet::Transformation::LastFourDigits],
-      longer ? 64 : 16,
-      fast
+      transformations: [Ciphersweet::Transformation::LastFourDigits],
+      filter_bits: longer ? 64 : 16,
+      fast_hash: fast
     )
     encrypted_row.add_blind_index('ssn', blind_index)
+
+    encrypted_row.create_compound_index(
+      "contact_ssnlast4_hivstatus",
+      columns: ['ssn', 'hivstatus'],
+      filter_bits: longer ? 64 : 16,
+      fast_hash: fast
+    )
+    encrypted_row
   end
 
 end

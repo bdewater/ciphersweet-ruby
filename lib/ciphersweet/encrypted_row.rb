@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 require_relative 'encrypted_common'
+require_relative 'compound_index'
 
 module Ciphersweet
   class EncryptedRow
     include EncryptedCommon
+
+    COMPOUND_SPECIAL = 'special__compound__indexes'
 
     def initialize(engine, table_name)
       @engine = engine
@@ -78,7 +81,58 @@ module Ciphersweet
         end
       end
 
+      if @compound_indexes.key?(index_name)
+        value[index_name] = calc_compound_index(row, @compound_indexes[index_name])
+      end
+
       value
+    end
+
+    def create_compound_index(index_name, columns:, filter_bits: 256, fast_hash: false, hash_config: {})
+      index = CompoundIndex.new(
+        index_name,
+        columns: columns,
+        filter_bits: filter_bits,
+        fast_hash: fast_hash,
+        hash_config: hash_config
+      )
+      add_compound_index(index)
+
+      index
+    end
+
+    def add_compound_index(compound_index)
+      @compound_indexes[compound_index.name] = compound_index
+
+      self
+    end
+
+    def calc_compound_index(row, compound_index, symmetric_key = nil)
+      symmetric_key ||= @engine.blind_index_root_key(@table_name, COMPOUND_SPECIAL)
+
+      backend = @engine.backend
+      sub_key = SymmetricKey.new(
+        OpenSSL::HMAC.digest(
+          'sha256',
+          symmetric_key.key_material,
+          Util.pack([@table_name, COMPOUND_SPECIAL, compound_index.name])
+        )
+      )
+
+      plaintext = compound_index.packed(row)
+
+      indexed = if compound_index.fast_hash
+        backend.blind_index_fast(plaintext, key: sub_key.key_material, bit_length: compound_index.filter_bits)
+      else
+        backend.blind_index_slow(
+          plaintext,
+          key: sub_key.key_material,
+          bit_length: compound_index.filter_bits,
+          hash_config: compound_index.hash_config
+        )
+      end
+
+      indexed.unpack1("H*")
     end
   end
 end
